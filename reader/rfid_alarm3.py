@@ -12,8 +12,9 @@ BAUD_RATE = 9600  # Change this to your RFID reader's baud rate
 ALARM_SOUND = 'alarm_sound.mp3'  # Change this to your audio file path  
   
 # API endpoint to send RFID tags  
-API_URL = 'http://localhost:5000/receive'  # Change this if your API is hosted elsewhere  
-  
+# API_URL = 'http://localhost:5000/receive'  # Change this if your API is hosted elsewhere  
+API_URL = 'https://iqosgate.theorca.id/receive'  # Change this if your API is hosted elsewhere
+
 def find_serial_port():  
     ports = list_ports.comports()  
     for port in ports:  
