@@ -1,11 +1,34 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
+import json
 from datetime import datetime, timezone, timedelta
 
 app = Flask(__name__)
 
-# In-memory storage for received strings with timestamps
-received_strings = []
+# File to store the data
+DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rfid_data.json')
+
+# Load existing data or initialize empty list
+def load_data():
+    try:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return []
+
+# Save data to file
+def save_data(data):
+    try:
+        with open(DATA_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving data: {e}")
+
+# Initialize data from file
+received_strings = load_data()
 
 def format_timestamp_to_utc7(iso_timestamp):
     try:
@@ -27,7 +50,14 @@ def receive_string():
     timestamp = data.get('timestamp', None)
     if timestamp:
         timestamp = format_timestamp_to_utc7(timestamp)
-    received_strings.append({'string': received_string, 'timestamp': timestamp})
+    
+    # Add new data
+    new_data = {'string': received_string, 'timestamp': timestamp}
+    received_strings.append(new_data)
+    
+    # Save to file
+    save_data(received_strings)
+    
     return jsonify({'message': 'String received', 'received': received_string, 'timestamp': timestamp}), 200
 
 @app.route('/strings', methods=['GET'])
