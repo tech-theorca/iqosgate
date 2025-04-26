@@ -93,6 +93,18 @@
             padding: 40px 0;
         }
 
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--timestamp-color);
+            font-size: 1.1em;
+        }
+
+        .stats .count {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -112,6 +124,7 @@
     <div class="container">
         <h1>RFID Tag Detection</h1>
         <button id="refreshBtn">Refresh Tags</button>
+        <div class="stats">Total Records: <span class="count" id="recordCount">0</span></div>
         <ul id="stringsList"></ul>
     </div>
 
@@ -128,7 +141,10 @@
                 const data = await response.json();
                 console.log('Received data:', data);
                 stringsList.innerHTML = '';
-                if (Array.isArray(data.strings) && data.strings.length > 0) {
+                const totalRecords = Array.isArray(data.strings) ? data.strings.length : 0;
+                document.getElementById('recordCount').textContent = totalRecords;
+
+                if (totalRecords > 0) {
                     // Reverse the array to show latest data on top
                     data.strings.slice().reverse().forEach(item => {
                         console.log('Item:', item);
