@@ -3,34 +3,117 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tag Detected</title>
+    <title>RFID Tag Detection</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        :root {
+            --primary-color: #2196F3;
+            --background-color: #f5f5f5;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --timestamp-color: #666666;
         }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        #refreshBtn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto 30px;
+            transition: background-color 0.3s ease;
+        }
+
+        #refreshBtn:hover {
+            background-color: #1976D2;
+        }
+
         #stringsList {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
+
         #stringsList li {
-            background: #f0f0f0;
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 4px;
-            word-break: break-all;
+            background: var(--card-background);
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        #refreshBtn {
-            margin-bottom: 20px;
-            padding: 8px 16px;
-            font-size: 16px;
+
+        #stringsList li:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .tag-id {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .timestamp {
+            color: var(--timestamp-color);
+            font-size: 0.9em;
+        }
+
+        .no-data {
+            text-align: center;
+            color: var(--timestamp-color);
+            font-style: italic;
+            padding: 40px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            #stringsList li {
+                padding: 15px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Tag Detected</h1>
-    <button id="refreshBtn">Refresh</button>
-    <ul id="stringsList"></ul>
+    <div class="container">
+        <h1>RFID Tag Detection</h1>
+        <button id="refreshBtn">Refresh Tags</button>
+        <ul id="stringsList"></ul>
+    </div>
 
     <script>
         const stringsList = document.getElementById('stringsList');
@@ -45,7 +128,7 @@
                 const data = await response.json();
                 console.log('Received data:', data);
                 stringsList.innerHTML = '';
-                if (Array.isArray(data.strings)) {
+                if (Array.isArray(data.strings) && data.strings.length > 0) {
                     // Reverse the array to show latest data on top
                     data.strings.slice().reverse().forEach(item => {
                         console.log('Item:', item);
@@ -58,14 +141,17 @@
                             timestamp = JSON.stringify(timestamp);
                         }
                         const li = document.createElement('li');
-                        li.textContent = str + (timestamp ? ' at ' + timestamp : '');
+                        li.innerHTML = `
+                            <span class="tag-id">${str}</span>
+                            <span class="timestamp">Detected at ${timestamp}</span>
+                        `;
                         stringsList.appendChild(li);
                     });
                 } else {
-                    stringsList.innerHTML = '<li>No strings received</li>';
+                    stringsList.innerHTML = '<li class="no-data">No tags detected yet</li>';
                 }
             } catch (error) {
-                stringsList.innerHTML = '<li>Error loading strings</li>';
+                stringsList.innerHTML = '<li class="no-data">Error loading tags</li>';
                 console.error('Fetch error:', error);
             }
         }
