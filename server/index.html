@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RFID Tag Detection</title>
+    <title>Iqos RFID Tag Detection</title>
     <style>
         :root {
             --primary-color: #2196F3;
@@ -43,13 +43,36 @@
             font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
-            display: block;
-            margin: 0 auto 30px;
+            display: inline-block;
+            margin: 0 10px 30px 0;
             transition: background-color 0.3s ease;
         }
 
         #refreshBtn:hover {
             background-color: #1976D2;
+        }
+
+        #clearBtn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            margin: 0 0 30px 0;
+            transition: background-color 0.3s ease;
+        }
+
+        #clearBtn:hover {
+            background-color: #1976D2;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
         }
 
         #stringsList {
@@ -122,8 +145,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>RFID Tag Detection</h1>
-        <button id="refreshBtn">Refresh Tags</button>
+        <h1>Iqos RFID Tag Detection</h1>
+        <div class="button-group">
+            <button id="refreshBtn">Refresh Tags</button>
+            <button id="clearBtn">Clear Tags</button>
+        </div>
         <div class="stats">Total Records: <span class="count" id="recordCount">0</span></div>
         <ul id="stringsList"></ul>
     </div>
@@ -131,6 +157,7 @@
     <script>
         const stringsList = document.getElementById('stringsList');
         const refreshBtn = document.getElementById('refreshBtn');
+        const clearBtn = document.getElementById('clearBtn');
 
         async function fetchStrings() {
             try {
@@ -173,6 +200,18 @@
         }
 
         refreshBtn.addEventListener('click', fetchStrings);
+
+        clearBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/clear', { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error('Failed to clear tags');
+                }
+                await fetchStrings();
+            } catch (error) {
+                console.error('Clear error:', error);
+            }
+        });
 
         // Initial fetch
         fetchStrings();

@@ -85,5 +85,15 @@ def get_strings():
 def serve_index():
     return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'index.html')
 
+@app.route('/clear', methods=['POST'])
+def clear_strings():
+    try:
+        save_data([])
+        logger.info("Cleared all RFID tag data")
+        return jsonify({'message': 'All tags cleared'}), 200
+    except Exception as e:
+        logger.error(f"Error clearing data: {e}")
+        return jsonify({'error': 'Failed to clear data'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
