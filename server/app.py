@@ -85,7 +85,7 @@ def get_strings():
 def serve_index():
     return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'index.html')
 
-@app.route('/clear', methods=['POST'])
+@app.route('/clear', methods=['GET', 'POST'])
 def clear_strings():
     try:
         save_data([])
