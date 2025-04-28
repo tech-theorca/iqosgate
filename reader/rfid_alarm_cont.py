@@ -58,19 +58,21 @@ def send_gate_status_to_api(status):
 
 def periodic_gate_status_update(interval=60):  
     status = 1  # Hardcoded online status, can be updated with real logic  
+    # Send initial online status immediately on start
+    send_gate_status_to_api(status)
     while True:  
-        send_gate_status_to_api(status)  
         time.sleep(interval)  
+        send_gate_status_to_api(status)  
 
 def main():  
     serial_port = find_serial_port()  
     if not serial_port:  
         print("No serial port found. Please connect your RFID reader.")  
         return  
-  
+ 
     # Start the periodic gate status update in a separate thread  
     threading.Thread(target=periodic_gate_status_update, daemon=True).start()  
-  
+ 
     try:  
         # Open the serial port  
         with serial.Serial(serial_port, BAUD_RATE, timeout=1) as ser:  
@@ -97,6 +99,6 @@ def main():
         print("Program terminated.")  
     except Exception as e:  
         print(f"Error: {e}")  
-  
+ 
 if __name__ == "__main__":  
     main()

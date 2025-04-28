@@ -59,9 +59,11 @@ def send_gate_status_to_api(status):
 
 def periodic_gate_status_update(interval=60):  
     status = 1  # Hardcoded online status, can be updated with real logic  
+    # Send initial online status immediately on start
+    send_gate_status_to_api(status)
     while True:  
-        send_gate_status_to_api(status)  
         time.sleep(interval)  
+        send_gate_status_to_api(status)  
 
 def main():  
     serial_port = find_serial_port()  
