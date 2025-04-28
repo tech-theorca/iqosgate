@@ -61,18 +61,21 @@ def receive_string():
     
     received_string = data['string']
     timestamp = data.get('timestamp', None)
+    device = data.get('device', None)
     if timestamp:
         timestamp = format_timestamp_to_utc7(timestamp)
     
     # Add new data
     new_data = {'string': received_string, 'timestamp': timestamp}
+    if device:
+        new_data['device'] = device
     current_data.append(new_data)
     
     # Save to file
     save_data(current_data)
     logger.info(f"Saved new data, total records: {len(current_data)}")
     
-    return jsonify({'message': 'String received', 'received': received_string, 'timestamp': timestamp}), 200
+    return jsonify({'message': 'String received', 'received': received_string, 'timestamp': timestamp, 'device': device}), 200
 
 @app.route('/strings', methods=['GET'])
 def get_strings():

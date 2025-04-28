@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Iqos RFID Tag Detection</title>
+    <title>IQOS RFID Tag Detection</title>
+    <!-- Version: 1.0.0 -->
     <style>
         :root {
             --primary-color: #2196F3;
@@ -141,11 +142,20 @@
                 padding: 15px;
             }
         }
+
+        .version-label {
+            text-align: center;
+            color: var(--timestamp-color);
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Iqos RFID Tag Detection</h1>
+        <h1>IQOS RFID Tag Detection</h1>
+        <div class="version-label">Version 1.0.0</div>
         <div class="button-group">
             <button id="refreshBtn">Refresh Tags</button>
             <button id="clearBtn">Clear Tags</button>
@@ -177,6 +187,7 @@
                         console.log('Item:', item);
                         let str = item.string;
                         let timestamp = item.timestamp;
+                        let device = item.device;
                         if (typeof str === 'object') {
                             str = JSON.stringify(str);
                         }
@@ -186,7 +197,7 @@
                         const li = document.createElement('li');
                         li.innerHTML = `
                             <span class="tag-id">${str}</span>
-                            <span class="timestamp">Detected at ${timestamp}</span>
+                            <span class="timestamp">${device ? `Detected by ${device} at ${timestamp}` : `Detected at ${timestamp}`}</span>
                         `;
                         stringsList.appendChild(li);
                     });

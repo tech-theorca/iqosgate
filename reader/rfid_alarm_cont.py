@@ -15,6 +15,9 @@ ALARM_SOUND = 'alarm_sound.mp3'  # Change this to your audio file path
 # API_URL = 'http://localhost:5000/receive'  # Change this if your API is hosted elsewhere  
 API_URL = 'https://iqosgate.theorca.id/receive'  # Change this if your API is hosted elsewhere
 
+# Device identifier for this Raspberry Pi
+DEVICE_ID = "GateA"  # Change this to "GateB" or other as needed
+
 def find_serial_port():  
     ports = list_ports.comports()  
     for port in ports:  
@@ -31,9 +34,9 @@ def ring_alarm():
 def send_tag_to_api(tag_str):  
     try:  
         timestamp = datetime.utcnow().isoformat() + 'Z'  # UTC ISO 8601 format  
-        response = requests.post(API_URL, json={'string': tag_str, 'timestamp': timestamp})  
+        response = requests.post(API_URL, json={'string': tag_str, 'timestamp': timestamp, 'device': DEVICE_ID})  
         if response.status_code == 200:  
-            print(f"Successfully sent tag to API: {tag_str} at {timestamp}")  
+            print(f"Successfully sent tag to API: {tag_str} at {timestamp} from {DEVICE_ID}")  
         else:  
             print(f"Failed to send tag to API: {response.status_code} {response.text}")  
     except Exception as e:  
