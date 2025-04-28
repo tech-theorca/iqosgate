@@ -151,6 +151,52 @@
             font-style: italic;
         }
     </style>
+    <style>
+        /* Floating container for gate statuses */
+        #gateStatusContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 5px 7px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            max-width: 100px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            z-index: 1000;
+        }
+        #gateStatusContainer h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: var(--primary-color);
+            text-align: center;
+        }
+        .gate-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            color: var(--text-color);
+        }
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 10px;
+            border: 1px solid #999;
+        }
+        .online {
+            background-color: #4CAF50; /* green */
+            border-color: #388E3C;
+        }
+        .offline {
+            background-color: #F44336; /* red */
+            border-color: #D32F2F;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -164,10 +210,19 @@
         <ul id="stringsList"></ul>
     </div>
 
+    <!-- Floating gate status container -->
+    <div id="gateStatusContainer">
+        <h3>Gate Status</h3>
+        <div id="gateStatusList">
+            <!-- Gate statuses will be dynamically inserted here -->
+        </div>
+    </div>
+
     <script>
         const stringsList = document.getElementById('stringsList');
         const refreshBtn = document.getElementById('refreshBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const gateStatusList = document.getElementById('gateStatusList');
 
         async function fetchStrings() {
             try {
@@ -210,7 +265,34 @@
             }
         }
 
-        refreshBtn.addEventListener('click', fetchStrings);
+        async function fetchGateStatus() {
+            try {
+                const response = await fetch('/gate_status');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const statuses = await response.json();
+                gateStatusList.innerHTML = '';
+                for (const [gateId, status] of Object.entries(statuses)) {
+                    const div = document.createElement('div');
+                    div.className = 'gate-status';
+                    const statusClass = status === 1 ? 'online' : 'offline';
+                    div.innerHTML = `
+                        <span>${gateId}</span>
+                        <span class="status-indicator ${statusClass}"></span>
+                    `;
+                    gateStatusList.appendChild(div);
+                }
+            } catch (error) {
+                gateStatusList.innerHTML = '<div class="no-data">Error loading gate statuses</div>';
+                console.error('Fetch gate status error:', error);
+            }
+        }
+
+        refreshBtn.addEventListener('click', () => {
+            fetchStrings();
+            fetchGateStatus();
+        });
 
         clearBtn.addEventListener('click', async () => {
             try {
@@ -218,7 +300,8 @@
                 if (!response.ok) {
                     throw new Error('Failed to clear tags');
                 }
-                await fetchStrings();
+                fetchStrings();
+                fetchGateStatus();
             } catch (error) {
                 console.error('Clear error:', error);
             }
@@ -226,9 +309,12 @@
 
         // Initial fetch
         fetchStrings();
+        fetchGateStatus();
 
-        // Auto refresh every 5 seconds
+        // Auto refresh every 5 seconds for tags
         setInterval(fetchStrings, 5000);
+        // Auto refresh every 30 seconds for gate status
+        setInterval(fetchGateStatus, 30000);
     </script>
 </body>
 </html>

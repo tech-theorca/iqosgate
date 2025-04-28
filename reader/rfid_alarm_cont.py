@@ -4,6 +4,7 @@ import pygame  # Import pygame for sound playback
 import requests  # Import requests to send HTTP requests  
 from datetime import datetime  
 from serial.tools import list_ports  
+import threading  
   
 # Configure the baud rate  
 BAUD_RATE = 57600  # Change this to your RFID reader's baud rate  
@@ -15,6 +16,9 @@ ALARM_SOUND = 'alarm_sound.mp3'  # Change this to your audio file path
 # API_URL = 'http://localhost:5000/receive'  # Change this if your API is hosted elsewhere  
 API_URL = 'https://iqosgate.theorca.id/receive'  # Change this if your API is hosted elsewhere
 
+# API endpoint to send gate status
+GATE_STATUS_API_URL = 'https://iqosgate.theorca.id/gate_status'  # Change if needed
+
 # Device identifier for this Raspberry Pi
 DEVICE_ID = "GateA"  # Change this to "GateB" or other as needed
 
@@ -25,12 +29,12 @@ def find_serial_port():
         print(f"Found port: {port.device} - {port.description}")  
         return port.device  
     return None  
-  
+ 
 def ring_alarm():  
     pygame.mixer.init()  # Initialize the mixer  
     pygame.mixer.music.load(ALARM_SOUND)  # Load the sound file  
     pygame.mixer.music.play()  # Play the sound  
-  
+ 
 def send_tag_to_api(tag_str):  
     try:  
         timestamp = datetime.utcnow().isoformat() + 'Z'  # UTC ISO 8601 format  
@@ -41,12 +45,31 @@ def send_tag_to_api(tag_str):
             print(f"Failed to send tag to API: {response.status_code} {response.text}")  
     except Exception as e:  
         print(f"Error sending tag to API: {e}")  
-  
+
+def send_gate_status_to_api(status):  
+    try:  
+        response = requests.post(GATE_STATUS_API_URL, json={'gate_id': DEVICE_ID, 'status': status})  
+        if response.status_code == 200:  
+            print(f"Successfully sent gate status {status} for {DEVICE_ID}")  
+        else:  
+            print(f"Failed to send gate status: {response.status_code} {response.text}")  
+    except Exception as e:  
+        print(f"Error sending gate status: {e}")  
+
+def periodic_gate_status_update(interval=60):  
+    status = 1  # Hardcoded online status, can be updated with real logic  
+    while True:  
+        send_gate_status_to_api(status)  
+        time.sleep(interval)  
+
 def main():  
     serial_port = find_serial_port()  
     if not serial_port:  
         print("No serial port found. Please connect your RFID reader.")  
         return  
+  
+    # Start the periodic gate status update in a separate thread  
+    threading.Thread(target=periodic_gate_status_update, daemon=True).start()  
   
     try:  
         # Open the serial port  

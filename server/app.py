@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from flask_cors import CORS
 import logging
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -38,16 +39,14 @@ def save_data(data):
 # Initialize data from file
 received_strings = load_data()
 
-def format_timestamp_to_utc7(iso_timestamp):
-    try:
-        dt = datetime.fromisoformat(iso_timestamp.replace('Z', '+00:00'))
-        utc7 = timezone(timedelta(hours=7))
-        dt_utc7 = dt.astimezone(utc7)
-        day = dt_utc7.strftime('%A')  # Full weekday name
-        time = dt_utc7.strftime('%H:%M:%S')
-        return f"{day} {time}"
-    except Exception:
-        return iso_timestamp
+# In-memory storage for gate statuses with last update timestamp
+gate_statuses = {}
+
+TIMEOUT_SECONDS = 120  # 2 minutes timeout for offline detection
+
+@app.route('/')
+def serve_index():
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'index.html')
 
 @app.route('/receive', methods=['POST'])
 def receive_string():
@@ -84,10 +83,6 @@ def get_strings():
     logger.info(f"Loaded {len(current_data)} records from file")
     return jsonify({'strings': current_data}), 200
 
-@app.route('/')
-def serve_index():
-    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'index.html')
-
 @app.route('/clear', methods=['GET', 'POST'])
 def clear_strings():
     try:
@@ -97,6 +92,49 @@ def clear_strings():
     except Exception as e:
         logger.error(f"Error clearing data: {e}")
         return jsonify({'error': 'Failed to clear data'}), 500
+
+def format_timestamp_to_utc7(iso_timestamp):
+    try:
+        dt = datetime.fromisoformat(iso_timestamp.replace('Z', '+00:00'))
+        utc7 = timezone(timedelta(hours=7))
+        dt_utc7 = dt.astimezone(utc7)
+        day = dt_utc7.strftime('%A')  # Full weekday name
+        time = dt_utc7.strftime('%H:%M:%S')
+        return f"{day} {time}"
+    except Exception:
+        return iso_timestamp
+
+@app.route('/gate_status', methods=['POST'])
+def update_gate_status():
+    data = request.get_json()
+    if not data or 'gate_id' not in data or 'status' not in data:
+        return jsonify({'error': 'Missing "gate_id" or "status" in request body'}), 400
+    
+    gate_id = data['gate_id']
+    status = data['status']
+    if status not in [0, 1]:
+        return jsonify({'error': 'Status must be 0 or 1'}), 400
+    
+    gate_statuses[gate_id] = {
+        'status': status,
+        'last_update': time.time()
+    }
+    logger.info(f"Updated gate {gate_id} status to {'online' if status == 1 else 'offline'}")
+    return jsonify({'message': f'Gate {gate_id} status updated', 'gate_id': gate_id, 'status': status}), 200
+
+@app.route('/gate_status', methods=['GET'])
+def get_gate_statuses():
+    current_time = time.time()
+    result = {}
+    for gate_id, info in gate_statuses.items():
+        last_update = info.get('last_update', 0)
+        status = info.get('status', 0)
+        if current_time - last_update > TIMEOUT_SECONDS:
+            # Consider offline if last update older than timeout
+            result[gate_id] = 0
+        else:
+            result[gate_id] = status
+    return jsonify(result), 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
