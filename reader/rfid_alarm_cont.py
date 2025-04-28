@@ -45,19 +45,11 @@ def main():
         print("No serial port found. Please connect your RFID reader.")  
         return  
   
-    sent_tags = set()  
-    last_clear_time = time.time()  
-    CLEAR_INTERVAL = 60  # seconds to clear sent tags set  
     try:  
         # Open the serial port  
         with serial.Serial(serial_port, BAUD_RATE, timeout=1) as ser:  
             print(f"Listening for RFID tags on {serial_port}...")  
             while True:  
-                current_time = time.time()  
-                if current_time - last_clear_time > CLEAR_INTERVAL:  
-                    sent_tags.clear()  
-                    last_clear_time = current_time  
-                    print("Cleared sent tags set.")  
                 if ser.in_waiting > 0:  
                     rfid_tag = ser.read(ser.in_waiting)  # Read raw bytes  
                     print(f"Raw Data Detected: {rfid_tag}")  # Print raw data  
@@ -68,11 +60,10 @@ def main():
                     chunk_size = 16  
                     for i in range(0, len(tag_str), chunk_size):  
                         chunk = tag_str[i:i+chunk_size]  
-                        if chunk and chunk not in sent_tags:  
-                            print(f"Sending new EPC chunk: {chunk}")  
+                        if chunk:  
+                            print(f"Sending EPC chunk: {chunk}")  
                             ring_alarm()  # Ring the alarm  
                             send_tag_to_api(chunk)  # Send chunk to API  
-                            sent_tags.add(chunk)  
                             time.sleep(1)  # Delay to avoid multiple alarms for the same tag  
                 else:  
                     time.sleep(0.1)  
