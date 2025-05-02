@@ -13,23 +13,33 @@ BAUD_RATE = 57600  # Change this to your RFID reader's baud rate
 ALARM_SOUND = 'alarm_sound.mp3'  # Change this to your audio file path  
   
 # API endpoint to send RFID tags  
-API_URL = 'http://localhost:5000/receive'  # Change this if your API is hosted elsewhere  
-#API_URL = 'https://iqosgate.theorca.id/receive'  # Change this if your API is hosted elsewhere
+#API_URL = 'http://localhost:5000/receive'  # Change this if your API is hosted elsewhere  
+API_URL = 'https://iqosgate.theorca.id/receive'  # Change this if your API is hosted elsewhere
 
 # API endpoint to send gate status
-#GATE_STATUS_API_URL = 'https://iqosgate.theorca.id/gate_status'  # Change if needed
-GATE_STATUS_API_URL = 'http://localhost:5000/gate_status'  # Change if needed
+GATE_STATUS_API_URL = 'https://iqosgate.theorca.id/gate_status'  # Change if needed
+#GATE_STATUS_API_URL = 'http://localhost:5000/gate_status'  # Change if needed
 
 # Device identifier for this Raspberry Pi
 DEVICE_ID = "GateA"  # Change this to "GateB" or other as needed
 
-def find_serial_port():  
-    ports = list_ports.comports()  
-    for port in ports:  
-        # You can add more sophisticated checks here if needed  
-        print(f"Found port: {port.device} - {port.description}")  
-        return port.device  
-    return None  
+def find_serial_port():
+    """Find the first available serial port."""
+    ports = list_ports.comports()
+    if not ports:
+        return None
+        
+    # Try to find a port with RFID reader characteristics
+    for port in ports:
+        # Print port details for debugging
+        print(f"Found port: {port.device} - {port.description}")
+        if "USB" in port.description.upper():
+            print(f"Selected USB port: {port.device}")
+            return port.device
+            
+    # If no specific USB port found, return the first available port
+    print(f"Selected first available port: {ports[0].device}")
+    return ports[0].device
   
 def ring_alarm():  
     pygame.mixer.init()  # Initialize the mixer  
@@ -90,19 +100,37 @@ def main():
                 if ser.in_waiting > 0:  
                     rfid_tag = ser.read(ser.in_waiting)  # Read raw bytes  
                     print(f"Raw Data Detected: {rfid_tag}")  # Print raw data  
-                    # Convert to hex string for sending  
-                    tag_str = ''.join(format(x, '02x') for x in rfid_tag)  
-                    print(f"Hex Data: {tag_str}")  
-                    # Split hex string into chunks of 16 characters (8 bytes)  
-                    chunk_size = 16  
-                    for i in range(0, len(tag_str), chunk_size):  
-                        chunk = tag_str[i:i+chunk_size]  
-                        if chunk and chunk not in sent_tags:  
-                            print(f"Sending new EPC chunk: {chunk}")  
-                            ring_alarm()  # Ring the alarm  
-                            send_tag_to_api(chunk)  # Send chunk to API  
-                            sent_tags.add(chunk)  
-                            time.sleep(1)  # Delay to avoid multiple alarms for the same tag  
+                    # Convert to hex string without spaces
+                    tag_str = ''.join(format(x, '02x') for x in rfid_tag)
+                    print(f"Raw Hex Data: {tag_str}")
+                    
+                    # Process the tag - remove first 4 bytes and last 2 bytes
+                    hex_clean = tag_str[8:-4]  # Remove first 4 bytes (8 chars) and last 2 bytes (4 chars)
+                    
+                    # Take only first 24 characters (8 groups of 3 chars) and process into 12-bit chunks
+                    hex_clean = hex_clean[:24]  # Limit to 24 characters
+                    processed_chunks = []
+                    for i in range(0, len(hex_clean), 3):
+                        chunk = hex_clean[i:i+3]
+                        if len(chunk) == 3:  # Only process complete 3-char chunks
+                            processed_chunks.append(chunk)
+                        if len(processed_chunks) == 8:  # Stop after 8 chunks
+                            break
+                            
+                    # Join only the first 8 chunks with spaces
+                    processed_tag = ' '.join(processed_chunks[:8])
+                    print(f"Processed Hex Data (8 chunks of 12 bits): {processed_tag}")
+                    
+                    # Remove spaces for sending
+                    processed_tag_no_spaces = ''.join(processed_chunks[:8])
+                    
+                    # Process the tag if it's not empty and hasn't been sent
+                    if processed_tag_no_spaces and processed_tag_no_spaces not in sent_tags:
+                        print(f"Sending new EPC tag: {processed_tag_no_spaces}")  
+                        ring_alarm()  # Ring the alarm  
+                        send_tag_to_api(processed_tag_no_spaces)  # Send tag to API  
+                        sent_tags.add(processed_tag_no_spaces)  
+                        time.sleep(1)  # Delay to avoid multiple alarms for the same tag  
                 else:  
                     time.sleep(0.1)  
     except KeyboardInterrupt:  
